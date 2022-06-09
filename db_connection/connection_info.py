@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 hostname = "localhost"
 uname = "irene"
 pwd = "test123"
-dbname = "learnWorlds"
+dbname = "dummyApi"
 
 # dummy data app-id
 parameters = {
