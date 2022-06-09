@@ -38,7 +38,7 @@ hostname : str
 uname : str
     the username for MySQL user account
 pwd : str
-    the password for MySQL user account
+    the password for MySQL user account (default learnWorlds)
 dbname : str
     the name of the database the tables users, posts and comments will be created
 
@@ -46,25 +46,33 @@ dbname : str
 parameters : json
     the json contains the app-id needed to fetch the data
 
-engine = create_engine(
-        "mysql+pymysql://{user}:{pw}@{host}/{db}".format(host=hostname, db=dbname, user=uname, pw=pwd))
+# MySQL tables schema
+users_datatype : dict
+    contains the columns and datatypes of the MySQL table users
 
-start_engine = create_engine(
-        "mysql+pymysql://{user}:{pw}@{host}/".format(host=hostname, user=uname, pw=pwd))
+posts_datatype : dict
+    contains the columns and datatypes of the MySQL table posts
 
-says_str : str
-    a formatted string to print out what the animal says
-name : str
-    the name of the animal
-sound : str
-    the sound that the animal makes
-num_legs : int
-    the number of legs the animal has (default 4)
+comments_datatype : dict
+    contains the columns and datatypes of the MySQL table comments
 
 Methods
 -------
-says(sound=None)
-    Prints the animals name and what sound it makes
+fetch_data_from_api(request_url, limit_value) - fetch the data from the given
+    endpoint and returns a dataframe
+
+clean_dataframe(df) - clean and validate the data from input dataframe and return
+    a clean dataframe
+
+drop_table_if_exists(engine_con, database_name, table_name) - drop the tables from MySQL
+    if they already exists
+
+upload_data_to_mysql_tables(engine_con, table_name, df, datatypes) - upload the data
+    from the dataframe into MySQL's table
+
+add_keys_and_constraints(engine_con) - add the private and foreign key constrains
+
+main - the main function of the script
 """
 
 import json
@@ -72,7 +80,6 @@ import pandas as pd
 import requests
 from sqlalchemy.types import NVARCHAR, INT, DATETIME, TEXT
 from db_connection.connection_info import engine, start_engine, dbname, parameters
-
 
 # mysql tables schema
 users_datatype = dict(
@@ -90,11 +97,27 @@ comments_datatype = dict(
 
 
 def fetch_data_from_api(request_url, limit_value):
+    """Fetch the data from the given endpoint and returns a dataframe
+
+    Parameters
+    ----------
+    limit_value: int
+        limit value should be in range [5-50]
+    request_url: str
+        request url to fetch the objects from the api
+
+    Returns
+    -------
+    dataframe
+        a dataframe with the data fetched from the api
+
+    """
     page_number = 0
     length = 1
     df_data_prev = pd.DataFrame()
     df_data_all = pd.DataFrame()
 
+    # fetch all the data from pages [0-999] withe limit [5-50]
     while length != 0:
         response = requests.get(request_url + "?page=" + str(page_number) + "&limit=" + str(limit_value),
                                 headers=parameters)
@@ -103,6 +126,7 @@ def fetch_data_from_api(request_url, limit_value):
         length = len(data_info)
         page_number += 1
 
+    # fetch the users' and posts' full data
     if 'user' in request_url or 'post' in request_url:
         for i in df_data_prev['id']:
             response = requests.get(request_url + i, headers=parameters)
@@ -115,6 +139,20 @@ def fetch_data_from_api(request_url, limit_value):
 
 
 def clean_dataframe(df):
+    """Clean and validate the data from input dataframe and return a clean dataframe
+
+     Parameters
+     ----------
+     df: dataframe
+         a dataframe with the data fetched from the api
+
+     Returns
+     -------
+     dataframe
+         a dataframe containing data after the cleaning and validation
+
+     """
+
     # drop duplicate rows in the dataframe
     df = df.drop_duplicates(subset=['id'])
 
@@ -136,9 +174,11 @@ def clean_dataframe(df):
     if 'tags' in df.columns:
         df['tags'] = df['tags'].apply(json.dumps)
 
+    # format the datetime column publishDate from post data
     if 'publishDate' in df.columns:
         df.publishDate = pd.to_datetime(df.publishDate, format='%Y-%m-%d %H:%M:%S')
 
+    # unnest location info and store it into different columns in the dataframe
     if 'location' in df.columns:
         df['loc_street'] = df['location'].str['street']
         df['loc_city'] = df['location'].str['city']
@@ -154,70 +194,103 @@ def clean_dataframe(df):
 
 
 def drop_table_if_exists(engine_con, database_name, table_name):
-    # drop fk tables
+    """Drop the tables from MySQL if they already exists
+
+    Parameters
+    ----------
+    engine_con: variable
+        connection object
+    database_name: str
+        database name
+    table_name: str
+        the name of the table
+    """
+    # drop tables if exists
     engine_con.execute("DROP TABLE IF EXISTS " + database_name + "." + table_name + ";")
 
 
 def upload_data_to_mysql_tables(engine_con, table_name, df, datatypes):
-    # insert users data
+    """Upload the data from the dataframe into MySQL's table
+
+    Parameters
+    ----------
+    engine_con: variable
+        connection object
+    table_name: str
+        the name of the table
+    df: dataframe
+        a dataframe with the data to insert into mysql
+    datatypes: json
+        a json with the schema of MySQL's table
+    """
+
+    # insert users data into MySQL
     df.to_sql(con=engine_con, name=table_name, if_exists='replace', index=False, dtype=datatypes)
 
 
 def add_keys_and_constraints(engine_con):
-    # add is as a primary key
+    """Add the private and foreign key constrains to MySQL tables created
+
+    Parameters
+    ----------
+    engine_con: variable
+        connection object
+    """
+    # add id as a primary key
     engine_con.execute("ALTER TABLE `users`  ADD PRIMARY KEY (`id`);")
     engine_con.execute("ALTER TABLE `posts` ADD PRIMARY KEY (`id`);")
+    # add foreign keys of the owner's for the posts and the comments
     engine_con.execute(
         "ALTER TABLE `posts` ADD CONSTRAINT `fk_posts_owner` FOREIGN KEY (ownerId) REFERENCES `users` (id);")
     engine_con.execute("ALTER TABLE `comments` ADD PRIMARY KEY (`id`);")
     engine_con.execute(
         "ALTER TABLE `comments` ADD CONSTRAINT `fk_comments_owner` FOREIGN KEY (ownerId)  REFERENCES `users` (id);")
+    # add foreign key connecting comments and posts
     # engine_con.execute(
     #     "ALTER TABLE `comments` ADD CONSTRAINT `fk_comments_postid` FOREIGN KEY (post)  REFERENCES `posts` (id);")
 
 
 def main():
-    # fetch the data
+    # fetch user's data
     users_df = fetch_data_from_api("https://dummyapi.io/data/v1/user/", 10)
 
-    # clean the data
+    # clean user's data
     clean_users = clean_dataframe(users_df)
 
-    # fetch the data
+    # fetch posts' data
     posts_df = fetch_data_from_api("https://dummyapi.io/data/v1/post/", 20)
 
-    # clean the data
+    # clean posts' data
     clean_posts = clean_dataframe(posts_df)
 
-    # fetch the data
+    # fetch comments' data
     comments_df = fetch_data_from_api("https://dummyapi.io/data/v1/comment/", 20)
 
-    # clean the data
+    # clean comments' data
     clean_comments = clean_dataframe(comments_df)
 
-    # create database
+    # create database to MySQL
     start_engine.execute("CREATE DATABASE IF NOT EXISTS " + dbname + ";")
 
-    # drop tables if already exist
+    # drop tables from database if already exist
     drop_table_if_exists(engine, dbname, 'posts')
 
     drop_table_if_exists(engine, dbname, 'comments')
 
     drop_table_if_exists(engine, dbname, 'users')
 
-    # insert users data
+    # insert users' data to MySQL
     upload_data_to_mysql_tables(engine, 'users', clean_users, users_datatype)
 
-    # insert posts data
+    # insert posts' data to MySQL
     upload_data_to_mysql_tables(engine, 'posts', clean_posts, posts_datatype)
 
-    # insert comments data
+    # insert comments' data to MySQL
     upload_data_to_mysql_tables(engine, 'comments', clean_comments, comments_datatype)
 
-    # format tables add keys and constraints
+    # format tables add keys and constraints to MySQL's tables
     add_keys_and_constraints(engine)
 
 
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     main()
