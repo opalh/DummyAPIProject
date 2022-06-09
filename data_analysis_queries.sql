@@ -2,7 +2,7 @@
 SELECT
   CAST(registerDate AS date) AS date_added,
   COUNT(*)
-FROM learnworlds.users
+FROM dummyApi.users
 GROUP BY CAST(registerDate AS date);
 
 # What is the average time between registration and first comment?
@@ -10,8 +10,8 @@ SELECT
   AVG( TIMESTAMPDIFF(minute,
       b.publishDate,
       a.registerDate))
-FROM learnworlds.users a
-INNER JOIN learnworlds.comments b
+FROM dummyApi.users a
+INNER JOIN dummyApi.comments b
 ON a.id=ownerId;
 
 # Which cities have the most activity, in terms of posts per day?
@@ -23,9 +23,9 @@ WITH
     CAST(a.publishDate AS date) AS datevalue,
     COUNT(a.id) AS posts
   FROM
-    learnworlds.posts a
+    dummyApi.posts a
   INNER JOIN
-    learnworlds.users b
+    dummyApi.users b
   ON
     a.ownerId=b.id
   GROUP BY
@@ -43,7 +43,7 @@ WITH
     id,
     REPLACE(REPLACE(REPLACE(tags, '"', ''),'[',''),']','') AS tags
   FROM
-    learnworlds.posts ),
+    dummyApi.posts ),
   PIVOT AS (
   SELECT
     id,
