@@ -5,7 +5,7 @@ file before running this script:
 -hostname
 -username
 -password
--dbname default value ("learnWorlds")
+-dbname default value ("dummyApi")
 
 This script fetch the following objects from https://dummyapi.io/ and does some cleaning
 and validation:
@@ -14,7 +14,7 @@ and validation:
 - Comments
 
 After the data cleaning process, the script imports the data into the MySQL database
-the user has set in the configs (with default value "learnWorlds") in the following tables:
+the user has set in the configs (with default value "dummyApi") in the following tables:
 - users
 - posts
 - comments
@@ -38,7 +38,7 @@ hostname : str
 uname : str
     the username for MySQL user account
 pwd : str
-    the password for MySQL user account (default learnWorlds)
+    the password for MySQL user account (default dummyApi)
 dbname : str
     the name of the database the tables users, posts and comments will be created
 

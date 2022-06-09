@@ -7,7 +7,7 @@ This script store's data from a dummy API https://dummyapi.io/docs into a MySQL 
 - hostname
 - username
 - password
-- dbname default value ("learnWorlds")
+- dbname default value ("dummyApi")
 
 ---
 ### Data Analysis with MySQL 
