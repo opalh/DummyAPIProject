@@ -16,7 +16,7 @@ Once the Python script is completed, test the data with the queries in *data_ana
 
 For example in the question "*Which tags are most frequently encountered, across user posts?*", the following are the top 10 results.
 
-![img_1.png](img_1.png)
+![img_2.png](img_2.png)
 
 ---
 
