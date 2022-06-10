@@ -14,6 +14,10 @@ This script store's data from a dummy API https://dummyapi.io/docs into a MySQL 
 
 Once the Python script is completed, test the data with the queries in *data_analysis_queries.sql* file.
 
+For example in the question "*Which tags are most frequently encountered, across user posts?*", the following are the top 10 results.
+
+![img_1.png](img_1.png)
+
 ---
 
 ### Orchestration & Monitoring
@@ -25,6 +29,7 @@ To go one step further, with some changes in the code we could enhance this appl
 ETL Overview using Airflow:
 1. Read the data using the api, and clean and transform the data. Return the new dataframes (users, posts, comments ).
 2. Loading data into BigQuery. Receive the dataframes as input and load the data using google.cloud bigquery package.
-3. Use Data Studio to create dashboards with insides and data analysis, using Big Query tables created in the previews step. 
+3. Use BigQueryCheckOperator to run some queries in Big Query to check the results. 
+4. Use Data Studio to create dashboards with insides and data analysis, using Big Query tables created in the previews step. 
 
-Orchestrate this creating a DAG for Airflow (Cloud Composer) with the python scripts describe in step 1 and 2. 
+Orchestrate this creating a DAG for Airflow (Cloud Composer) with the python scripts describe in step 1 - 3.
