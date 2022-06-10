@@ -20,4 +20,11 @@ Once the Python script is completed, test the data with the queries in *data_ana
 
 For ease deploying to production we could create a docker image with the application.
 
-To go one step further, we could enhance this application by using Google's platform's tools Cloud Composer (Apache Airflow) for the orchestration, Big Query as the data warehouse, and Data Studio for creating a dashboard with some insights. 
+To go one step further, with some changes in the code we could enhance this application by using Google's platform's tools Cloud Composer (Apache Airflow) for the orchestration, Big Query as the data warehouse, and Data Studio for creating a dashboard with some insights. 
+
+ETL Overview using Airflow:
+1. Read the data using the api, and clean and transform the data. Return the new dataframes (users, posts, comments ).
+2. Loading data into BigQuery. Receive the dataframes as input and load the data using google.cloud bigquery package.
+3. Use Data Studio to create dashboards with insides and data analysis, using Big Query tables created in the previews step. 
+
+Orchestrate this creating a DAG for Airflow (Cloud Composer) with the python scripts describe in step 1 and 2. 
